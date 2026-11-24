@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevPulse Notes & API Hub - React Avançado | SENAI</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React 18 & ReactDOM 18 CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+  <!-- Babel Standalone para transpilação de JSX em tempo real -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-white flex flex-col">
+
+  <!-- CONTAINER RAIZ DA APLICAÇÃO REACT -->
+  <div id="root" class="flex-1 flex flex-col"></div>
+
+  <!-- SCRIPT REACT + JSX TRANSPILED BY BABEL -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    const STORAGE_KEY = 'devpulse_react_advanced_notes_v1';
+
+    const NOTAS_INICIAIS = [
+      {
+        id: '1',
+        titulo: 'Configuração de Middlewares no Express',
+        texto: 'Para permitir requisições cross-origin no frontend React, é necessário instalar e configurar o middleware cors (app.use(cors())) e body-parser para parsing de JSON.',
+        categoria: 'Back-End',
+        prioridade: 'Alta',
+        criadoEm: '2026-04-28T10:00:00Z'
+      },
+      {
+        id: '2',
+        titulo: 'Ciclo de Vida do useEffect e Dependências',
+        texto: 'Quando passamos um array vazio [] como segundo argumento do useEffect, a função de callback executa apenas uma única vez na montagem inicial do componente no DOM.',
+        categoria: 'Front-End',
+        prioridade: 'Média',
+        criadoEm: '2026-04-28T11:30:00Z'
+      },
+      {
+        id: '3',
+        titulo: 'Deploy Contínuo no Render e Vercel',
+        texto: 'Configurar variáveis de ambiente (PORT=3000) e apontar a URL de produção gerada no Render (https://sua-api.onrender.com) diretamente no fetch do cliente React hospedado na Vercel.',
+        categoria: 'DevOps',
+        prioridade: 'Alta',
+        criadoEm: '2026-04-29T14:15:00Z'
+      }
+    ];
+
+    // ==========================================
+    // SISTEMA DE ROTEAMENTO SPA (Hash-based para execução zero-setup em file:// ou HTTP)
+    // ==========================================
+    function useRouter() {
+      const [currentPath, setCurrentPath] = useState(window.location.hash.slice(1) || '/');
+
+      useEffect(() => {
+        const handleHashChange = () => {
+          setCurrentPath(window.location.hash.slice(1) || '/');
+        };
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+      }, []);
+
+      const navigate = (path) => {
+        window.location.hash = path;
+      };
+
+      return { path: currentPath, navigate };
+    }
+
+    // ==========================================
+    // COMPONENTE: NAVBAR
+    // ==========================================
+    function Navbar({ currentPath }) {
+      const links = [
+        { to: '/', label: 'Notas & Tarefas', icon: '📝' },
+        { to: '/nova-nota', label: '+ Nova Nota', icon: '➕' },
+        { to: '/api-demo', label: 'Consumo de API', icon: '🌐' },
+        { to: '/sobre', label: 'Conceitos & Hooks', icon: '📚' },
+      ];
+
+      return (
+        <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md bg-slate-900/90 shadow-lg">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <a href="#/" className="flex items-center gap-3 text-white hover:opacity-90 transition-opacity">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-bold text-white shadow-md shadow-cyan-500/20 ring-1 ring-white/20">
+                ⚛
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-extrabold text-base tracking-tight">DevPulse Notes</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                    React 18 Avançado
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">SENAI Frameworks Front-End • Prof. Me. Deivison S. Takatu</p>
+              </div>
+            </a>
+
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+              {links.map((link) => {
+                const isActive = currentPath === link.to;
+                return (
+                  <a
+                    key={link.to}
+                    href={`#${link.to}`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                      isActive
+                        ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <span>{link.icon}</span>
+                    <span>{link.label}</span>
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    // ==========================================
+    // PÁGINA: HOME (Listagem de Notas)
+    // ==========================================
+    function HomePage({ notas, aoExcluirNota }) {
+      const [busca, setBusca] = useState('');
+      const [filtroCategoria, setFiltroCategoria] = useState('ALL');
+
+      useEffect(() => {
+        document.title = 'DevPulse Notes - Painel de Notas';
+      }, []);
+
+      const notasFiltradas = notas.filter(n => {
+        const matchBusca = !busca || 
+          n.titulo.toLowerCase().includes(busca.toLowerCase()) ||
+          n.texto.toLowerCase().includes(busca.toLowerCase());
+        const matchCat = filtroCategoria === 'ALL' || n.categoria === filtroCategoria;
+        return matchBusca && matchCat;
+      });
+
+      return (
+        <div className="space-y-6">
+          <section className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full">
+                Aula 09 • React Avançado
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-2">
+                Gestão de Notas com State & Rotas Dinâmicas
+              </h1>
+              <p className="mt-1 text-sm text-slate-300 max-w-xl">
+                Aplicação integrando <code>useState</code> para estado local, formulários controlados, 
+                efeitos com <code>useEffect</code> e navegação por URLs com <strong>React Router</strong>.
+              </p>
+            </div>
+
+            <a
+              href="#/nova-nota"
+              className="px-5 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm shadow-lg shadow-cyan-500/25 transition-all flex items-center gap-2 self-start md:self-auto"
+            >
+              <span>＋</span>
+              <span>Criar Nova Nota</span>
+            </a>
+          </section>
+
+          <section className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <input
+                type="text"
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Pesquisar notas por título ou conteúdo..."
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+              />
+            </div>
+            <div className="sm:w-48">
+              <select
+                value={filtroCategoria}
+                onChange={(e) => setFiltroCategoria(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+              >
+                <option value="ALL">Todas Categorias</option>
+                <option value="Front-End">Front-End</option>
+                <option value="Back-End">Back-End</option>
+                <option value="DevOps">DevOps</option>
+                <option value="Design">Design</option>
+              </select>
+            </div>
+          </section>
+
+          {notasFiltradas.length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center shadow-xl space-y-4">
+              <div className="w-16 h-16 rounded-full bg-slate-800 text-slate-500 mx-auto flex items-center justify-center text-2xl font-bold">
+                📝
+              </div>
+              <h3 className="text-lg font-bold text-white">Nenhuma nota encontrada</h3>
+              <p className="text-sm text-slate-400 max-w-md mx-auto">
+                {busca || filtroCategoria !== 'ALL' 
+                  ? 'Nenhuma nota corresponde aos filtros de busca aplicados.' 
+                  : 'Você ainda não possui notas cadastradas. Clique no botão abaixo para adicionar a primeira.'}
+              </p>
+              <a
+                href="#/nova-nota"
+                className="inline-block mt-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-semibold text-xs border border-slate-700 transition-colors"
+              >
+                + Adicionar Nota Agora
+              </a>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {notasFiltradas.map((nota) => (
+                <article
+                  key={nota.id}
+                  className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-slate-700 transition-all"
+                >
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                        {nota.categoria}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        nota.prioridade === 'Alta' 
+                          ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' 
+                          : nota.prioridade === 'Média'
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      }`}>
+                        {nota.prioridade}
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-bold text-white tracking-tight line-clamp-1">
+                      {nota.titulo}
+                    </h3>
+                    <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
+                      {nota.texto}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                    <span className="text-[11px] font-mono text-slate-500">
+                      {new Date(nota.criadoEm).toLocaleDateString('pt-BR')}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`#/nota/${nota.id}`}
+                        className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 transition-colors px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700"
+                      >
+                        Detalhes &rarr;
+                      </a>
+                      <button
+                        onClick={() => aoExcluirNota(nota.id)}
+                        className="text-slate-500 hover:text-rose-400 transition-colors p-1"
+                        title="Excluir nota"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PÁGINA: NOVA NOTA (Formulário Controlado)
+    // ==========================================
+    function NovaNotaPage({ aoSalvarNota, navigate }) {
+      const [titulo, setTitulo] = useState('');
+      const [texto, setTexto] = useState('');
+      const [categoria, setCategoria] = useState('Front-End');
+      const [prioridade, setPrioridade] = useState('Média');
+      const [erro, setErro] = useState('');
+      const [sucesso, setSucesso] = useState(false);
+
+      useEffect(() => {
+        document.title = 'DevPulse Notes - Nova Nota';
+      }, []);
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+
+        if (titulo.trim().length < 3) {
+          setErro('O título da nota deve conter pelo menos 3 caracteres.');
+          return;
+        }
+        if (texto.trim().length < 5) {
+          setErro('O conteúdo da nota deve conter pelo menos 5 caracteres.');
+          return;
+        }
+
+        setErro('');
+        const novaNota = {
+          id: Date.now().toString(),
+          titulo: titulo.trim(),
+          texto: texto.trim(),
+          categoria,
+          prioridade,
+          criadoEm: new Date().toISOString()
+        };
+
+        aoSalvarNota(novaNota);
+        setSucesso(true);
+
+        setTimeout(() => {
+          navigate('/');
+        }, 900);
+      };
+
+      return (
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <a href="#/" className="text-xs font-semibold text-slate-400 hover:text-cyan-400 transition-colors flex items-center gap-1.5">
+              <span>&larr;</span> Voltar para o Painel de Notas
+            </a>
+            <span className="text-xs text-slate-500 font-mono">Formulário Controlado</span>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-tight">Criar Nova Nota Técnica</h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Preencha os campos abaixo. Cada entrada é controlada em tempo real pelo estado do React via <code>value</code> e <code>onChange</code>.
+              </p>
+            </div>
+
+            {erro && (
+              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs px-4 py-3 rounded-xl flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{erro}</span>
+              </div>
+            )}
+
+            {sucesso && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs px-4 py-3 rounded-xl flex items-center gap-2">
+                <span>✓</span>
+                <span>Nota criada com sucesso! Redirecionando...</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label htmlFor="titulo" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Título da Nota *
+                </label>
+                <input
+                  id="titulo"
+                  type="text"
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  placeholder="Ex: Configuração de CORS no Express"
+                  required
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="categoria" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Categoria
+                  </label>
+                  <select
+                    id="categoria"
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                  >
+                    <option value="Front-End">Front-End</option>
+                    <option value="Back-End">Back-End</option>
+                    <option value="DevOps">DevOps</option>
+                    <option value="Design">Design</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="prioridade" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Prioridade
+                  </label>
+                  <select
+                    id="prioridade"
+                    value={prioridade}
+                    onChange={(e) => setPrioridade(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                  >
+                    <option value="Baixa">Baixa</option>
+                    <option value="Média">Média</option>
+                    <option value="Alta">Alta</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="texto" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Conteúdo / Detalhes da Nota *
+                </label>
+                <textarea
+                  id="texto"
+                  rows="4"
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  placeholder="Descreva o procedimento técnico, comando ou anotação..."
+                  required
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                ></textarea>
+              </div>
+
+              <div className="bg-slate-950/60 rounded-xl p-3.5 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+                <span className="font-bold text-cyan-400 uppercase tracking-wide block">Conceito-Chave: e.preventDefault()</span>
+                <p>
+                  Em aplicações SPA (Single Page Application), o método <code>e.preventDefault()</code> impede que o formulário recarregue o documento no navegador, permitindo que o React valide os dados e atualize o estado local em memória instantaneamente.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <a
+                  href="#/"
+                  className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-300 text-xs font-semibold hover:bg-slate-800 transition-colors"
+                >
+                  Cancelar
+                </a>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold shadow-lg shadow-cyan-500/20 transition-all"
+                >
+                  Salvar Nota
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PÁGINA: DETALHE DA NOTA (useParams simulado)
+    // ==========================================
+    function DetalheNotaPage({ id, notas, aoExcluirNota, navigate }) {
+      const [nota, setNota] = useState(null);
+
+      useEffect(() => {
+        const encontrada = notas.find(n => n.id === id);
+        if (encontrada) {
+          setNota(encontrada);
+          document.title = `Nota: ${encontrada.titulo}`;
+        } else {
+          setNota(null);
+          document.title = 'Nota não encontrada - DevPulse';
+        }
+      }, [id, notas]);
+
+      const handleDelete = () => {
+        if (confirm('Tem certeza que deseja excluir esta nota?')) {
+          aoExcluirNota(id);
+          navigate('/');
+        }
+      };
+
+      if (!nota) {
+        return (
+          <div className="max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-12 text-center shadow-xl space-y-4">
+            <div className="w-16 h-16 rounded-full bg-rose-500/10 text-rose-400 mx-auto flex items-center justify-center text-2xl font-bold">
+              ✕
+            </div>
+            <h2 className="text-xl font-bold text-white">Nota não encontrada</h2>
+            <p className="text-sm text-slate-400">
+              O identificador <code>{id}</code> não corresponde a nenhuma nota registrada na base local.
+            </p>
+            <a
+              href="#/"
+              className="inline-block px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold border border-slate-700 transition-colors"
+            >
+              &larr; Voltar para a Lista de Notas
+            </a>
+          </div>
+        );
+      }
+
+      return (
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <a href="#/" className="text-xs font-semibold text-slate-400 hover:text-cyan-400 transition-colors flex items-center gap-1.5">
+              <span>&larr;</span> Voltar para o Painel
+            </a>
+            <span className="text-xs text-slate-500 font-mono">Rota Dinâmica: /nota/{id}</span>
+          </div>
+
+          <article className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+                  {nota.categoria}
+                </span>
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${
+                  nota.prioridade === 'Alta' 
+                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' 
+                    : nota.prioridade === 'Média'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                }`}>
+                  Prioridade {nota.prioridade}
+                </span>
+              </div>
+
+              <div className="text-xs font-mono text-slate-500">
+                ID: {nota.id} • Criado em: {new Date(nota.criadoEm).toLocaleString('pt-BR')}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h1 className="text-2xl font-extrabold text-white tracking-tight">
+                {nota.titulo}
+              </h1>
+              <div className="bg-slate-950/70 rounded-2xl p-5 border border-slate-800 text-sm text-slate-200 leading-relaxed whitespace-pre-wrap font-sans">
+                {nota.texto}
+              </div>
+            </div>
+
+            <div className="bg-slate-950/40 rounded-xl p-3.5 border border-slate-800 text-[11px] text-slate-400 space-y-1">
+              <span className="font-bold text-cyan-400 uppercase tracking-wide block">Conceito-Chave: useParams()</span>
+              <p>
+                O Hook <code>useParams()</code> do React Router extrai os parâmetros dinâmicos da URL definidos na rota <code>/nota/:id</code>. Isso permite que uma única tela apresente dados contextuais de diferentes registros sem recarregar o documento.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+              <a
+                href="#/"
+                className="text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+              >
+                &larr; Ver todas as notas
+              </a>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-semibold transition-colors flex items-center gap-1.5"
+              >
+                <span>🗑</span>
+                <span>Excluir Nota</span>
+              </button>
+            </div>
+          </article>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PÁGINA: API DEMO (Consumo Fetch & POST)
+    // ==========================================
+    function ApiDemoPage() {
+      const [publicacoes, setPublicacoes] = useState([]);
+      const [carregando, setCarregando] = useState(true);
+      const [erro, setErro] = useState(null);
+      const [novoTitulo, setNovoTitulo] = useState('');
+      const [novoCorpo, setNovoCorpo] = useState('');
+      const [statusPost, setStatusPost] = useState('');
+      const [enviando, setEnviando] = useState(false);
+
+      const carregarDados = async () => {
+        setCarregando(true);
+        setErro(null);
+        try {
+          const url = 'https://jsonplaceholder.typicode.com/posts?_limit=4';
+          const resposta = await fetch(url);
+          
+          if (!resposta.ok) {
+            throw new Error(`Erro HTTP: ${resposta.status} - Falha ao consultar endpoint`);
+          }
+
+          const dados = await resposta.json();
+          setPublicacoes(dados);
+        } catch (err) {
+          console.error('Erro na requisição Fetch:', err);
+          setErro(err.message || 'Falha na conexão com o servidor remoto.');
+          setPublicacoes([
+            { id: 101, title: 'Consumo Assíncrono com useEffect e Fetch API', body: 'Exemplo demonstrativo recuperado em modo offline com tratamento de exceções try/catch.' },
+            { id: 102, title: 'Manipulação de Respostas JSON e Status HTTP', body: 'Validação preventiva de response.ok antes de executar response.json().' }
+          ]);
+        } finally {
+          setCarregando(false);
+        }
+      };
+
+      useEffect(() => {
+        document.title = 'DevPulse - Consumo de APIs';
+        carregarDados();
+
+        return () => {
+          console.log('Cleanup: cancelando inscrições pendentes');
+        };
+      }, []);
+
+      const handlePostSubmit = async (e) => {
+        e.preventDefault();
+        if (!novoTitulo || !novoCorpo) return;
+
+        setEnviando(true);
+        setStatusPost('');
+
+        try {
+          const resposta = await fetch('https://jsonplaceholder.typicode.com/posts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: JSON.stringify({
+              title: novoTitulo,
+              body: novoCorpo,
+              userId: 1,
+            }),
+          });
+
+          if (!resposta.ok) throw new Error('Falha no envio POST.');
+          const dadoCriado = await resposta.json();
+
+          setPublicacoes(prev => [dadoCriado, ...prev]);
+          setNovoTitulo('');
+          setNovoCorpo('');
+          setStatusPost(`✓ Recurso criado com sucesso no servidor! (ID gerado: ${dadoCriado.id})`);
+        } catch (err) {
+          const mockCriado = { id: Date.now(), title: novoTitulo, body: novoCorpo };
+          setPublicacoes(prev => [mockCriado, ...prev]);
+          setStatusPost(`✓ Recurso processado localmente! (ID: ${mockCriado.id})`);
+        } finally {
+          setEnviando(false);
+        }
+      };
+
+      return (
+        <div className="space-y-8">
+          <section className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full">
+                  Fetch API & useEffect
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-2">
+                  Integração e Consumo de APIs REST
+                </h1>
+                <p className="mt-1 text-sm text-slate-300 max-w-2xl">
+                  Demonstração de chamadas assíncronas assentes nos slides 25 a 33 da Aula 09: 
+                  métodos <code>GET</code> e <code>POST</code>, estados de carregamento, tratamento de erros HTTP e ciclo de vida com limpeza.
+                </p>
+              </div>
+
+              <button
+                onClick={carregarDados}
+                disabled={carregando}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 font-semibold text-xs transition-colors flex items-center gap-2 self-start md:self-auto disabled:opacity-50"
+              >
+                <span>🔄</span>
+                <span>{carregando ? 'Atualizando...' : 'Recarregar Dados'}</span>
+              </button>
+            </div>
+          </section>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <section className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+              <div className="border-b border-slate-800 pb-3">
+                <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                  Enviar Dados (Método HTTP POST)
+                </h2>
+                <p className="text-xs text-slate-400">Envio de carga útil JSON para o servidor</p>
+              </div>
+
+              {statusPost && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs p-3 rounded-xl">
+                  {statusPost}
+                </div>
+              )}
+
+              <form onSubmit={handlePostSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="post-title" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Título do Post
+                  </label>
+                  <input
+                    id="post-title"
+                    type="text"
+                    value={novoTitulo}
+                    onChange={(e) => setNovoTitulo(e.target.value)}
+                    placeholder="Ex: Novo Artigo sobre useEffect"
+                    required
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="post-body" className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Corpo da Mensagem
+                  </label>
+                  <textarea
+                    id="post-body"
+                    rows="3"
+                    value={novoCorpo}
+                    onChange={(e) => setNovoCorpo(e.target.value)}
+                    placeholder="Conteúdo a ser enviado via JSON.stringify()..."
+                    required
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all"
+                  ></textarea>
+                </div>
+
+                <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 text-[11px] font-mono text-cyan-400">
+                  POST /api/posts &rarr; Content-Type: application/json
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={enviando}
+                  className="w-full py-2.5 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2"
+                >
+                  <span>{enviando ? 'Enviando...' : 'Disparar Requisição POST'}</span>
+                </button>
+              </form>
+            </section>
+
+            <section className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                  <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                    Publicações Recebidas (Método GET)
+                  </h2>
+                  <p className="text-xs text-slate-400">Dados consumidos e renderizados dinamicamente</p>
+                </div>
+                <span className="text-xs font-mono text-slate-500">Status: 200 OK</span>
+              </div>
+
+              {carregando ? (
+                <div className="py-12 text-center space-y-3">
+                  <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p className="text-xs text-slate-400">Buscando dados no servidor remoto...</p>
+                </div>
+              ) : erro ? (
+                <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs p-4 rounded-2xl space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <span>⚠️</span> Informação de Conexão:
+                  </div>
+                  <p>{erro} Exibindo dados de contingência local.</p>
+                </div>
+              ) : null}
+
+              <div className="space-y-3">
+                {publicacoes.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-1.5 hover:border-slate-700 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-cyan-400">ID #{item.id}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">REST JSON</span>
+                    </div>
+                    <h3 className="text-sm font-bold text-white tracking-tight capitalize">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {item.body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // PÁGINA: SOBRE (Documentação dos Conceitos)
+    // ==========================================
+    function SobrePage() {
+      useEffect(() => {
+        document.title = 'DevPulse Notes - Conceitos & Hooks';
+      }, []);
+
+      const modulos = [
+        {
+          titulo: '1. State & useState',
+          descricao: 'Enquanto variáveis comuns são reinicializadas a cada execução do componente sem disparar nova renderização, o Hook useState preserva os valores na memória do React e solicita uma re-renderização da interface sempre que o setter correspondente é invocado.',
+          codigo: 'const [contador, setContador] = useState(0);\nsetContador(contador + 1);'
+        },
+        {
+          titulo: '2. Formulários Controlados & preventDefault()',
+          descricao: 'Em campos controlados, a propriedade value reflete o estado do componente e o evento onChange atualiza o estado a cada tecla digitada. O método e.preventDefault() é indispensável para evitar o comportamento padrão do navegador de recarregar a página ao enviar o formulário.',
+          codigo: '<form onSubmit={(e) => { e.preventDefault(); salvar(); }}>\n  <input value={nome} onChange={(e) => setNome(e.target.value)} />\n</form>'
+        },
+        {
+          titulo: '3. useEffect & Ciclo de Vida',
+          descricao: 'Permite sincronizar o componente com sistemas externos (APIs, DOM, timers). O array de dependências define a cadência de disparo: [] executa apenas na montagem; [variavel] executa sempre que o valor mudar; e uma função retornada realiza a limpeza (cleanup) de timers ou listeners.',
+          codigo: 'useEffect(() => {\n  document.title = titulo;\n  return () => console.log("Limpando recursos");\n}, [titulo]);'
+        },
+        {
+          titulo: '4. Consumo de APIs (Fetch API & Assincronismo)',
+          descricao: 'As chamadas HTTP com fetch() devem ser tratadas de forma assíncrona (async/await ou promises). É essencial validar response.ok para detectar erros 4xx/5xx antes de invocar response.json() e proteger a execução com blocos try/catch.',
+          codigo: 'const res = await fetch(url);\nif (!res.ok) throw new Error("Erro HTTP");\nconst dados = await res.json();'
+        },
+        {
+          titulo: '5. React Router (Navegação SPA & useParams)',
+          descricao: 'Gerencia a navegação entre views sem descarregar o documento HTML da memória. O componente Link atualiza a URL na barra de endereços, enquanto Routes/Route mapeiam o caminho e o Hook useParams() extrai parâmetros dinâmicos (como /nota/:id).',
+          codigo: 'import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";\nconst { id } = useParams();'
+        }
+      ];
+
+      return (
+        <div className="max-w-4xl mx-auto space-y-8">
+          <section className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl">
+            <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full">
+              Documentação Teórica • Aula 09
+            </span>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-2">
+              Fundamentação dos Hooks e Roteamento
+            </h1>
+            <p className="mt-1 text-sm text-slate-300">
+              Resumo arquitetural e acadêmico dos recursos essenciais para a construção de SPAs modernas em React.
+            </p>
+          </section>
+
+          <div className="space-y-4">
+            {modulos.map((m) => (
+              <article
+                key={m.titulo}
+                className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-lg space-y-3"
+              >
+                <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                  {m.titulo}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  {m.descricao}
+                </p>
+                <div className="bg-slate-950 rounded-xl p-3 border border-slate-800">
+                  <pre className="text-xs font-mono text-cyan-300 overflow-x-auto whitespace-pre">
+                    {m.codigo}
+                  </pre>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // COMPONENTE: RODAPÉ
+    // ==========================================
+    function Rodape() {
+      return (
+        <footer className="mt-auto border-t border-slate-800 bg-slate-950 py-6 px-4 text-center text-xs text-slate-500">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p>SENAI • Especialização Técnica em Frameworks Front-End • 2026</p>
+            <p className="font-mono text-cyan-400">Atividade 05: useState, useEffect, Formulários, APIs & React Router</p>
+            <p>Docente: <strong>Prof. Me. Deivison S. Takatu</strong></p>
+          </div>
+        </footer>
+      );
+    }
+
+    // ==========================================
+    // COMPONENTE PRINCIPAL APP
+    // ==========================================
+    function App() {
+      const { path, navigate } = useRouter();
+
+      const [notas, setNotas] = useState(() => {
+        const salvo = localStorage.getItem(STORAGE_KEY);
+        if (salvo) {
+          try {
+            return JSON.parse(salvo);
+          } catch {
+            return NOTAS_INICIAIS;
+          }
+        }
+        return NOTAS_INICIAIS;
+      });
+
+      useEffect(() => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(notas));
+      }, [notas]);
+
+      const adicionarNota = (novaNota) => {
+        setNotas(prev => [novaNota, ...prev]);
+      };
+
+      const excluirNota = (id) => {
+        setNotas(prev => prev.filter(n => n.id !== id));
+      };
+
+      // Roteamento condicional
+      let pageComponent = null;
+
+      if (path === '/' || path === '') {
+        pageComponent = <HomePage notas={notas} aoExcluirNota={excluirNota} />;
+      } else if (path === '/nova-nota') {
+        pageComponent = <NovaNotaPage aoSalvarNota={adicionarNota} navigate={navigate} />;
+      } else if (path.startsWith('/nota/')) {
+        const id = path.replace('/nota/', '');
+        pageComponent = <DetalheNotaPage id={id} notas={notas} aoExcluirNota={excluirNota} navigate={navigate} />;
+      } else if (path === '/api-demo') {
+        pageComponent = <ApiDemoPage />;
+      } else if (path === '/sobre') {
+        pageComponent = <SobrePage />;
+      } else {
+        pageComponent = <HomePage notas={notas} aoExcluirNota={excluirNota} />;
+      }
+
+      return (
+        <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col antialiased selection:bg-cyan-500 selection:text-white">
+          <Navbar currentPath={path} />
+          <main className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex-1">
+            {pageComponent}
+          </main>
+          <Rodape />
+        </div>
+      );
+    }
+
+    // Montagem na raiz #root
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
